@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "shipglows.backend.v1",
+  "provider": "none",
+  "mode": "none",
+  "reason": "This Flutter presentation demo uses synthetic source and newsletter data with simulated hooks. It does not connect to a real library or delivery service and requires no application backend.",
+  "command": null,
+  "dependencies": [],
+  "readiness": null
+}
