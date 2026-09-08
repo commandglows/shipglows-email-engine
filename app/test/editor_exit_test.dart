@@ -33,7 +33,11 @@ void main() {
       origin: Uri.https('example.test'),
       client: MockClient((request) async {
         Object result;
-        if (request.url.path.endsWith('/context')) {
+        if (request.url.path.endsWith('/support/context')) {
+          result = {'configured': false, 'mailboxes': [], 'can_reply': false};
+        } else if (request.url.path.endsWith('/sources')) {
+          result = {'configured': false, 'documents': [], 'next_cursor': null};
+        } else if (request.url.path.endsWith('/context')) {
           result = {
             'businesses': [
               {
@@ -70,9 +74,9 @@ void main() {
     );
     await tester.pumpWidget(EmailEngineApp(api: api));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Diffusion'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Initial'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ouvrir dans le studio'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, 'Nom de la campagne'),
@@ -82,7 +86,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(saves, 1);
     expect(campaign['title'], 'Dernière version');
-    expect(find.text('Nouvelle campagne'), findsOneWidget);
+    expect(find.byTooltip('Nouvelle campagne'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

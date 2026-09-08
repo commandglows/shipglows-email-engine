@@ -20,7 +20,6 @@ class SourceSidebarPreviewApp extends StatefulWidget {
 class _SourceSidebarPreviewAppState extends State<SourceSidebarPreviewApp> {
   ThemeMode _themeMode = ThemeMode.light;
   final _campaigns = CampaignDemoRepository();
-  final _support = DemoSupportRepository();
 
   @override
   Widget build(BuildContext context) {
@@ -30,39 +29,14 @@ class _SourceSidebarPreviewAppState extends State<SourceSidebarPreviewApp> {
       theme: PreviewTheme.light(),
       darkTheme: PreviewTheme.dark(),
       themeMode: _themeMode,
-      home: widget.showCockpit
-          ? EmailCockpit(
-              demonstration: true,
-              initialSection: Uri.base.queryParameters.containsKey('campaigns')
-                  ? EmailSection.diffusion
-                  : EmailSection.overview,
-              darkMode: _themeMode == ThemeMode.dark,
-              onToggleTheme: () => setState(
-                () => _themeMode = _themeMode == ThemeMode.dark
-                    ? ThemeMode.light
-                    : ThemeMode.dark,
-              ),
-              builder: (context, section) => switch (section) {
-                EmailSection.support => SupportWorkspace(repository: _support),
-                EmailSection.sources ||
-                EmailSection.diffusion => SourceLibraryDemo(
-                  key: ValueKey(section),
-                  campaignsOnly: section == EmailSection.diffusion,
-                  campaigns: _campaigns,
-                  darkMode: _themeMode == ThemeMode.dark,
-                  onThemeChanged: (dark) => setState(
-                    () => _themeMode = dark ? ThemeMode.dark : ThemeMode.light,
-                  ),
-                ),
-                EmailSection.overview => const SizedBox.shrink(),
-              },
-            )
-          : SourceLibraryDemo(
-              darkMode: _themeMode == ThemeMode.dark,
-              onThemeChanged: (darkMode) => setState(
-                () => _themeMode = darkMode ? ThemeMode.dark : ThemeMode.light,
-              ),
-            ),
+      home: SourceLibraryDemo(
+        unified: widget.showCockpit,
+        campaigns: _campaigns,
+        darkMode: _themeMode == ThemeMode.dark,
+        onThemeChanged: (darkMode) => setState(
+          () => _themeMode = darkMode ? ThemeMode.dark : ThemeMode.light,
+        ),
+      ),
     );
   }
 }
@@ -73,6 +47,7 @@ class SourceLibraryDemo extends StatefulWidget {
     required this.onThemeChanged,
     this.campaignsOnly = false,
     this.campaigns,
+    this.unified = false,
     super.key,
   });
 
@@ -80,6 +55,7 @@ class SourceLibraryDemo extends StatefulWidget {
   final ValueChanged<bool> onThemeChanged;
   final bool campaignsOnly;
   final CampaignDemoRepository? campaigns;
+  final bool unified;
 
   @override
   State<SourceLibraryDemo> createState() => _SourceLibraryDemoState();
@@ -113,6 +89,22 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
   NewsletterTestReceipt? _testReceipt;
   late final _campaigns = widget.campaigns ?? CampaignDemoRepository();
   bool _fromCampaigns = false;
+  final _support = DemoSupportRepository();
+  final Map<String, SupportThread> _supportThreads = {};
+  final Map<String, NewsletterCampaign> _campaignItems = {};
+  final Map<String, String> _sections = {};
+  final _sectionKeys = {
+    for (final id in ['sources', 'support', 'diffusion']) id: GlobalKey(),
+  };
+  final _replyControllers = <String, TextEditingController>{};
+
+  @override
+  void dispose() {
+    for (final controller in _replyControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -136,6 +128,133 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
       eligibleCount: 1284,
       excludedCount: 37,
     );
+    if (widget.unified) _loadOtherFacets();
+  }
+
+  Future<void> _loadOtherFacets() async {
+    final support = await _support.threads('demo');
+    final campaigns = await _campaigns.list();
+    final otherItems = <SourceSidebarItem>[];
+    for (final summary in support.items) {
+      final thread = await _support.thread('demo', summary.id);
+      final id = 'support:${summary.id}';
+      _supportThreads[id] = thread;
+      _sections[id] = 'support';
+      otherItems.add(
+        SourceSidebarItem(
+          id: id,
+          title: summary.subject,
+          authorOrPublisher: summary.from,
+          summary: summary.snippet,
+          publishedAt: summary.updatedAt ?? DateTime(2026, 9, 8),
+          sourceType: 'Service client',
+          content: thread.messages
+              .map((m) => '${m.from}\n${m.text}')
+              .join('\n\n'),
+          tags: [summary.status.label],
+          seen: summary.status != SupportStatus.pending,
+        ),
+      );
+    }
+    for (final campaign in campaigns.items) {
+      final id = 'campaign:${campaign.id}';
+      _campaignItems[id] = campaign;
+      _sections[id] = 'diffusion';
+      final draft = _campaigns.drafts[campaign.id];
+      otherItems.add(
+        SourceSidebarItem(
+          id: id,
+          title: campaign.title,
+          authorOrPublisher: 'ShipGlows',
+          summary: campaign.subject,
+          publishedAt: campaign.updatedAt,
+          sourceType: 'Diffusion',
+          content:
+              '${campaign.subject}\n\n${draft?.blocks.map((b) => b.text).join('\n\n') ?? 'Ce brouillon est prêt à être travaillé dans l’éditeur.'}',
+          tags: [campaign.status.label],
+          seen: true,
+        ),
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _items.removeWhere((item) => _sections.containsKey(item.id));
+      _items.addAll(otherItems);
+    });
+  }
+
+  void _openCampaign(NewsletterCampaign campaign) {
+    final sample = _previewNewsletter(_newsletterSources);
+    setState(() {
+      _newsletterDraft =
+          _campaigns.drafts[campaign.id] ??
+          NewsletterDraft(
+            id: campaign.id,
+            revision: campaign.revision,
+            title: campaign.title,
+            subject: campaign.subject,
+            preheader: '',
+            blocks: sample.blocks,
+            sources: sample.sources,
+          );
+      _fromCampaigns = true;
+      _workspace = _DemoWorkspace.newsletter;
+    });
+  }
+
+  void _jumpTo(String section) {
+    setState(() => _selectedId = null);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _sectionKeys[section]?.currentContext;
+      if (target != null) Scrollable.ensureVisible(target, alignment: 0);
+    });
+  }
+
+  Widget? get _facetActions {
+    final thread = _supportThreads[_selectedId];
+    final campaign = _campaignItems[_selectedId];
+    if (thread != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final status in SupportStatus.values)
+                ChoiceChip(
+                  label: Text(status.label),
+                  selected: thread.status == status,
+                  onSelected: (_) async {
+                    await _support.setStatus('demo', thread.id, status);
+                    await _loadOtherFacets();
+                  },
+                ),
+            ],
+          ),
+          TextField(
+            controller: _replyControllers.putIfAbsent(
+              thread.id,
+              TextEditingController.new,
+            ),
+            minLines: 3,
+            maxLines: 8,
+            decoration: const InputDecoration(labelText: 'Votre réponse'),
+          ),
+          const Text('Démonstration · aucun email réel ne sera envoyé.'),
+        ],
+      );
+    }
+    if (campaign != null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: FilledButton.icon(
+          onPressed: () => _openCampaign(campaign),
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Ouvrir l’éditeur'),
+        ),
+      );
+    }
+    return null;
   }
 
   Future<void> _refresh() async {
@@ -147,6 +266,7 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
       _selectedId = null;
       _loading = false;
     });
+    if (widget.unified) await _loadOtherFacets();
     _notify('Demo library refreshed.');
   }
 
@@ -419,26 +539,66 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
             },
           ),
           _DemoWorkspace.sources => SourceSidebar(
-            title: 'Sources',
+            title: widget.unified ? 'ShipGlows Email Engine' : 'Sources',
+            itemSectionIds: widget.unified
+                ? {
+                    for (final item in _items)
+                      item.id: _sections[item.id] ?? 'sources',
+                  }
+                : const {},
+            sectionLabels: widget.unified
+                ? const {
+                    'sources': 'Sources',
+                    'support': 'Service client',
+                    'diffusion': 'Idées et brouillons de diffusion',
+                  }
+                : const {},
+            sectionKeys: widget.unified ? _sectionKeys : const {},
+            readerFooter: widget.unified ? _facetActions : null,
+            navigationHeader: !widget.unified
+                ? null
+                : Column(
+                    children: [
+                      for (final entry in const {
+                        'sources': 'Sources',
+                        'support': 'Service client',
+                        'diffusion': 'Diffusion',
+                      }.entries)
+                        ListTile(
+                          dense: true,
+                          title: Text(entry.value),
+                          leading: Icon(
+                            entry.key == 'sources'
+                                ? Icons.auto_stories_outlined
+                                : entry.key == 'support'
+                                ? Icons.forum_outlined
+                                : Icons.send_outlined,
+                          ),
+                          onTap: () => _jumpTo(entry.key),
+                        ),
+                    ],
+                  ),
             items: _items,
             selectedId: _selectedId,
             isLoading: _loading,
             style: PreviewTheme.sidebarStyle(widget.darkMode),
             categories: PreviewTheme.categories(widget.darkMode),
             topBarActions: [
-              IconButton(
-                tooltip: 'Campagnes',
-                onPressed: () =>
-                    setState(() => _workspace = _DemoWorkspace.campaigns),
-                icon: const Icon(Icons.campaign_outlined),
-              ),
-              IconButton(
-                tooltip: 'Open Newsletter Studio',
-                onPressed: () {
-                  setState(() => _workspace = _DemoWorkspace.newsletter);
-                },
-                icon: const Icon(Icons.edit_note_outlined),
-              ),
+              if (!widget.unified)
+                IconButton(
+                  tooltip: 'Campagnes',
+                  onPressed: () =>
+                      setState(() => _workspace = _DemoWorkspace.campaigns),
+                  icon: const Icon(Icons.campaign_outlined),
+                ),
+              if (!widget.unified)
+                IconButton(
+                  tooltip: 'Open Newsletter Studio',
+                  onPressed: () {
+                    setState(() => _workspace = _DemoWorkspace.newsletter);
+                  },
+                  icon: const Icon(Icons.edit_note_outlined),
+                ),
               IconButton(
                 tooltip: widget.darkMode ? 'Use light theme' : 'Use dark theme',
                 onPressed: () => widget.onThemeChanged(!widget.darkMode),
@@ -456,20 +616,24 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
             onSelected: (id) => setState(() => _selectedId = id),
             onRefresh: _refresh,
             onOpenLibrary: _openLibrary,
-            onIngest: _ingest,
-            onMarkSeen: _markSeen,
-            onArchive: _archive,
-            onDelete: _delete,
-            onOpenExternal: _openExternal,
+            onIngest: _sections.containsKey(_selectedId) ? null : _ingest,
+            onMarkSeen: _sections.containsKey(_selectedId) ? null : _markSeen,
+            onArchive: _sections.containsKey(_selectedId) ? null : _archive,
+            onDelete: _sections.containsKey(_selectedId) ? null : _delete,
+            onOpenExternal: _sections.containsKey(_selectedId)
+                ? null
+                : _openExternal,
             moveDestinations: _moveDestinations,
             laterDestinationId: 'later',
-            onMove: _move,
+            onMove: _sections.containsKey(_selectedId) ? null : _move,
             accounts: _accounts,
             currentAccountId: _accountId,
             onAccountSelected: _selectAccount,
-            onSummarize: _summarize,
+            onSummarize: _sections.containsKey(_selectedId) ? null : _summarize,
             projectDestinations: _projects,
-            onDistribute: _distribute,
+            onDistribute: _sections.containsKey(_selectedId)
+                ? null
+                : _distribute,
             onActionError: (error) => _notify('Action failed: $error'),
           ),
           _DemoWorkspace.newsletter => NewsletterStudio(
@@ -518,10 +682,11 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
             },
             onBack: () {
               setState(
-                () => _workspace = _fromCampaigns
+                () => _workspace = _fromCampaigns && !widget.unified
                     ? _DemoWorkspace.campaigns
                     : _DemoWorkspace.sources,
               );
+              if (widget.unified) _loadOtherFacets();
             },
             topBarActions: [
               IconButton(

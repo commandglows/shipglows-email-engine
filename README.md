@@ -1,10 +1,11 @@
 # ShipGlows Email Engine
 
-The default dashboard is a shared cockpit: **Sources** (Readwise Reader),
+The default interface is one shared email list and reader: **Sources** (Readwise Reader),
 **Service client** (owned Gmail accounts with Mutant Mail relay routing), and
-**Diffusion** (Postmark campaigns). Navigation preserves each visited workspace
-and its session drafts, including when crossing desktop/mobile layouts.
-The demo at `/` uses fictional data; `?campaigns` remains a Diffusion shortcut.
+**Diffusion** (Postmark campaigns). The three groups appear in this order in one
+scrolling list. A single sidebar jumps to each group; contextual reader actions
+handle support replies and campaign editing. There is no separate overview.
+The demo at `/` uses fictional data.
 The authenticated `app` has server-backed adapters with explicit configuration
 states. No provider connection or successful delivery is implied by the preview.
 
@@ -21,8 +22,8 @@ campaign API. The central backend retains ownership of audiences, consent,
 suppression, frozen approval snapshots and Postmark delivery. See
 [`app/README.md`](app/README.md) for the deployment boundary.
 
-Open **Campagnes** from the source toolbar in the demo, or use the managed preview
-with `?campaigns`. Its sample campaigns and sending hooks remain explicitly
+Select **Diffusion**, open a campaign in the shared reader, then open its editor.
+The preview's sample campaigns and sending hooks remain explicitly
 synthetic. Neither this preview nor passing tests proves hosted login or real
 email receipt. Production activation and real recipient tests are separate.
 

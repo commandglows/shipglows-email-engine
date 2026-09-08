@@ -1,4 +1,8 @@
-# Email cockpit web application
+# Unified email web application
+
+One SourceSidebar provides navigation, grouped email rows and the reader for
+Sources, Service client and Diffusion. Provider adapters supply scoped IDs and
+contextual reader actions. Campaign editing opens the existing studio.
 
 Sources reads email documents through the admin-only `sources` proxy. Configure
 `READWISE_READER_TOKEN` and comma-separated `READWISE_READER_OWNER_IDS` on the

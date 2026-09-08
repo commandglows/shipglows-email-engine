@@ -43,6 +43,12 @@ class SourceSidebar extends StatefulWidget {
     this.projectDestinations = const <SourceProjectDestination>[],
     this.onDistribute,
     this.onActionError,
+    this.navigationHeader,
+    this.itemSectionIds = const <String, String>{},
+    this.sectionLabels = const <String, String>{},
+    this.sectionEmptyMessages = const <String, String>{},
+    this.sectionKeys = const <String, GlobalKey>{},
+    this.readerFooter,
   });
 
   final String title;
@@ -76,6 +82,19 @@ class SourceSidebar extends StatefulWidget {
   final List<SourceProjectDestination> projectDestinations;
   final SourceDistributionCallback? onDistribute;
   final SourceActionErrorCallback? onActionError;
+
+  /// Host navigation inserted above the existing filters on every layout.
+  final Widget? navigationHeader;
+
+  /// Optional ordered groups sharing the same source rows and reader.
+  /// Items without a known mapping belong to the first declared section.
+  final Map<String, String> itemSectionIds;
+  final Map<String, String> sectionLabels;
+  final Map<String, String> sectionEmptyMessages;
+  final Map<String, GlobalKey> sectionKeys;
+
+  /// Contextual actions/composer in the existing reader's scroll surface.
+  final Widget? readerFooter;
 
   @override
   State<SourceSidebar> createState() => _SourceSidebarState();
@@ -153,7 +172,7 @@ class _SourceSidebarState extends State<SourceSidebar> {
 
   List<SourceSidebarItem> get _visibleItems {
     final query = _query.trim().toLowerCase();
-    return widget.items
+    final visible = widget.items
         .where((item) {
           final matchesQuery =
               query.isEmpty ||
@@ -187,6 +206,18 @@ class _SourceSidebarState extends State<SourceSidebar> {
           };
         })
         .toList(growable: false);
+    if (widget.sectionLabels.isEmpty) return visible;
+    return [
+      for (final section in widget.sectionLabels.keys)
+        ...visible.where((item) => _sectionFor(item.id) == section),
+    ];
+  }
+
+  String _sectionFor(String itemId) {
+    final section = widget.itemSectionIds[itemId];
+    return widget.sectionLabels.containsKey(section)
+        ? section!
+        : widget.sectionLabels.keys.first;
   }
 
   SourceSidebarItem? get _selectedItem {
@@ -367,8 +398,16 @@ class _SourceSidebarState extends State<SourceSidebar> {
       if (!_listScrollController.hasClients) return;
       final index = _visibleItems.indexWhere((item) => item.id == _activeId);
       if (index < 0) return;
-      final estimatedOffset =
+      var estimatedOffset =
           index * (widget.style.denseRowHeight + widget.style.dividerThickness);
+      if (widget.sectionLabels.isNotEmpty) {
+        final sectionIndex = widget.sectionLabels.keys.toList().indexOf(
+          _sectionFor(_activeId!),
+        );
+        estimatedOffset +=
+            (sectionIndex + 1) * widget.style.toolbarHeight +
+            sectionIndex * widget.style.gap4XLarge;
+      }
       _listScrollController.animateTo(
         estimatedOffset
             .clamp(0, _listScrollController.position.maxScrollExtent)
@@ -823,6 +862,7 @@ class _SourceSidebarState extends State<SourceSidebar> {
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
         child: _NavigationPane(
+          navigationHeader: widget.navigationHeader,
           title: widget.title,
           style: widget.style,
           colors: _colors,
@@ -983,6 +1023,7 @@ class _SourceSidebarState extends State<SourceSidebar> {
                   child: Column(
                     children: [
                       _TopBar(
+                        grouped: widget.sectionLabels.isNotEmpty,
                         title: widget.title,
                         compact: !showNavigation,
                         style: widget.style,
@@ -1003,6 +1044,7 @@ class _SourceSidebarState extends State<SourceSidebar> {
                               SizedBox(
                                 width: widget.style.navigationWidth,
                                 child: _NavigationPane(
+                                  navigationHeader: widget.navigationHeader,
                                   title: widget.title,
                                   style: widget.style,
                                   colors: _colors,
@@ -1018,6 +1060,11 @@ class _SourceSidebarState extends State<SourceSidebar> {
                             Expanded(
                               child: _selectedItem == null
                                   ? _SourceInbox(
+                                      itemSectionIds: widget.itemSectionIds,
+                                      sectionLabels: widget.sectionLabels,
+                                      sectionEmptyMessages:
+                                          widget.sectionEmptyMessages,
+                                      sectionKeys: widget.sectionKeys,
                                       items: _visibleItems,
                                       selectedId: _activeId,
                                       filterLabel: _filterLabel,
@@ -1040,6 +1087,7 @@ class _SourceSidebarState extends State<SourceSidebar> {
                                       onLoadMore: widget.onLoadMore,
                                     )
                                   : _ReaderPane(
+                                      readerFooter: widget.readerFooter,
                                       item: _selectedItem!,
                                       items: _visibleItems,
                                       style: widget.style,
@@ -1123,6 +1171,7 @@ class _SourceSidebarState extends State<SourceSidebar> {
 
 class _TopBar extends StatelessWidget {
   const _TopBar({
+    this.grouped = false,
     required this.title,
     required this.compact,
     required this.style,
@@ -1137,6 +1186,7 @@ class _TopBar extends StatelessWidget {
   });
 
   final String title;
+  final bool grouped;
   final bool compact;
   final SourceSidebarStyle style;
   final SourceSidebarColors colors;
@@ -1159,23 +1209,31 @@ class _TopBar extends StatelessWidget {
             onPressed: onMenu,
             icon: const Icon(Icons.menu),
           ),
-        Icon(Icons.auto_stories_outlined, color: colors.focus),
+        Icon(
+          grouped ? Icons.mail_outline : Icons.auto_stories_outlined,
+          color: colors.focus,
+        ),
         SizedBox(width: style.identityGap),
         Flexible(
           child: Text(
             title,
-            maxLines: 1,
+            maxLines: grouped ? 2 : 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: colors.mutedForeground,
-              fontWeight: FontWeight.w400,
-            ),
+            style:
+                (grouped
+                        ? Theme.of(context).textTheme.titleMedium
+                        : Theme.of(context).textTheme.titleLarge)
+                    ?.copyWith(
+                      color: colors.mutedForeground,
+                      fontWeight: FontWeight.w400,
+                    ),
           ),
         ),
       ],
     );
 
     final search = _SourceSearch(
+      hint: grouped ? 'Search emails' : 'Search sources',
       controller: searchController,
       focusNode: searchFocus,
       style: style,
@@ -1247,6 +1305,7 @@ class _TopBar extends StatelessWidget {
 
 class _SourceSearch extends StatelessWidget {
   const _SourceSearch({
+    this.hint = 'Search sources',
     required this.controller,
     required this.focusNode,
     required this.style,
@@ -1255,6 +1314,7 @@ class _SourceSearch extends StatelessWidget {
   });
 
   final TextEditingController controller;
+  final String hint;
   final FocusNode focusNode;
   final SourceSidebarStyle style;
   final SourceSidebarColors colors;
@@ -1267,7 +1327,7 @@ class _SourceSearch extends StatelessWidget {
       focusNode: focusNode,
       onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: 'Search sources',
+        hintText: hint,
         prefixIcon: const Icon(Icons.search),
         suffixIcon: controller.text.isEmpty
             ? const Icon(Icons.tune, semanticLabel: 'Search options')
@@ -1300,6 +1360,7 @@ class _SourceSearch extends StatelessWidget {
 
 class _NavigationPane extends StatelessWidget {
   const _NavigationPane({
+    this.navigationHeader,
     required this.title,
     required this.style,
     required this.colors,
@@ -1313,6 +1374,7 @@ class _NavigationPane extends StatelessWidget {
   });
 
   final String title;
+  final Widget? navigationHeader;
   final SourceSidebarStyle style;
   final SourceSidebarColors colors;
   final String selectedFilterId;
@@ -1330,6 +1392,10 @@ class _NavigationPane extends StatelessWidget {
       child: ListView(
         padding: style.navigationPadding,
         children: [
+          if (navigationHeader != null) ...[
+            navigationHeader!,
+            SizedBox(height: style.gapLarge),
+          ],
           if (onOpenLibrary != null) ...[
             Align(
               alignment: Alignment.centerLeft,
@@ -1500,6 +1566,10 @@ class _NavigationItem extends StatelessWidget {
 
 class _SourceInbox extends StatelessWidget {
   const _SourceInbox({
+    this.itemSectionIds = const {},
+    this.sectionLabels = const {},
+    this.sectionEmptyMessages = const {},
+    this.sectionKeys = const {},
     required this.items,
     required this.selectedId,
     required this.filterLabel,
@@ -1522,6 +1592,10 @@ class _SourceInbox extends StatelessWidget {
   });
 
   final List<SourceSidebarItem> items;
+  final Map<String, String> itemSectionIds;
+  final Map<String, String> sectionLabels;
+  final Map<String, String> sectionEmptyMessages;
+  final Map<String, GlobalKey> sectionKeys;
   final String? selectedId;
   final String filterLabel;
   final bool isLoading;
@@ -1590,7 +1664,121 @@ class _SourceInbox extends StatelessWidget {
     );
   }
 
+  Widget _groupedBody(BuildContext context) {
+    final groups = {
+      for (final id in sectionLabels.keys) id: <SourceSidebarItem>[],
+    };
+    for (final item in items) {
+      final section = itemSectionIds[item.id];
+      (groups[section] ?? groups.values.first).add(item);
+    }
+    return CustomScrollView(
+      controller: scrollController,
+      slivers: [
+        if (isLoading)
+          const SliverToBoxAdapter(child: LinearProgressIndicator()),
+        if (errorMessage != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: style.contentPadding,
+              child: _MessageState(
+                icon: Icons.cloud_off_outlined,
+                message: errorMessage!,
+                style: style,
+                actionLabel: onRefresh == null ? null : 'Try again',
+                onAction: onRefresh,
+              ),
+            ),
+          ),
+        for (final section in sectionLabels.entries) ...[
+          SliverToBoxAdapter(
+            child: Container(
+              key: sectionKeys[section.key],
+              height:
+                  style.toolbarHeight +
+                  (section.key == sectionLabels.keys.first
+                      ? 0
+                      : style.gap4XLarge),
+              padding: EdgeInsets.fromLTRB(
+                style.contentPadding.resolve(Directionality.of(context)).left,
+                section.key == sectionLabels.keys.first ? 0 : style.gap4XLarge,
+                style.contentPadding.resolve(Directionality.of(context)).right,
+                0,
+              ),
+              alignment: Alignment.centerLeft,
+              child: Semantics(
+                header: true,
+                child: Text(
+                  section.value,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(color: colors.foreground),
+                ),
+              ),
+            ),
+          ),
+          if (groups[section.key]!.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: style.contentPadding,
+                child: Text(
+                  sectionEmptyMessages[section.key] ??
+                      'Aucun email à afficher.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colors.mutedForeground,
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                if (index.isOdd) {
+                  return Divider(
+                    height: style.dividerThickness,
+                    color: colors.divider,
+                  );
+                }
+                final item = groups[section.key]![index ~/ 2];
+                return _DenseSourceRow(
+                  key: rowKeys.putIfAbsent(item.id, () => GlobalKey()),
+                  item: item,
+                  compact: compact,
+                  selected: item.id == selectedId,
+                  style: style,
+                  colors: colors,
+                  categoryFor: categoryFor,
+                  focusNode: rowFocusNodes.putIfAbsent(
+                    item.id,
+                    () => FocusNode(debugLabel: 'Source row ${item.id}'),
+                  ),
+                  onTap: () => onSelected(item.id),
+                  onFocus: () => onActiveChanged(item.id),
+                );
+              }, childCount: groups[section.key]!.length * 2 - 1),
+            ),
+        ],
+        if (hasMore)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: style.contentPadding,
+              child: OutlinedButton(
+                onPressed: isLoadingMore ? null : onLoadMore,
+                child: isLoadingMore
+                    ? SizedBox.square(
+                        dimension: style.actionIconSize,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Load more'),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _body(BuildContext context) {
+    if (sectionLabels.isNotEmpty) return _groupedBody(context);
     if (isLoading && items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1852,6 +2040,7 @@ class _CategoryIndicators extends StatelessWidget {
 
 class _ReaderPane extends StatelessWidget {
   const _ReaderPane({
+    this.readerFooter,
     required this.item,
     required this.items,
     required this.style,
@@ -1873,6 +2062,7 @@ class _ReaderPane extends StatelessWidget {
   });
 
   final SourceSidebarItem item;
+  final Widget? readerFooter;
   final List<SourceSidebarItem> items;
   final SourceSidebarStyle style;
   final SourceSidebarColors colors;
@@ -2141,6 +2331,10 @@ class _ReaderPane extends StatelessWidget {
                             icon: const Icon(Icons.auto_awesome_outlined),
                             label: const Text('Send to project'),
                           ),
+                        ],
+                        if (readerFooter != null) ...[
+                          SizedBox(height: style.gap3XLarge),
+                          readerFooter!,
                         ],
                         SizedBox(height: style.gap4XLarge),
                       ],

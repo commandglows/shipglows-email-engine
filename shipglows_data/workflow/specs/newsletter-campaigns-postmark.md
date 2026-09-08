@@ -124,6 +124,25 @@ No blocker to source implementation. Exact hosted configuration and live recipie
 
 ## Current Chantier Flow
 
+### Approved unified-interface correction — 2026-09-08
+
+The annotated user correction supersedes the separate cockpit dashboard below.
+Keep one topbar, one sidebar and one scrolling list: Sources, Service client,
+then Diffusion, separated by whitespace. All three reuse SourceSidebar's dense
+email row and reader. Only contextual actions differ. Facet links scroll within
+the same interface; campaign editing uses the existing studio. No provider action
+or production activation is included.
+
+Execution batches: shared-component owner implements optional grouping, anchors
+and reader footer with regression tests; app owner integrates real adapters and
+reply/draft tests; integrator handles the synthetic demo, documentation and
+rendered verification. Preserve unrelated style and runtime metadata changes.
+
+Verification: shared component tests cover grouping, reader reuse, isolated empty
+states and distant scroll anchors. Demo integration covers support and campaign
+selection in the same reader. App tests cover scoped IDs, retained reply drafts,
+explicit confirmation and unknown-send locking. Browser evidence is synthetic.
+
 ## Approved Cockpit Extension — 2026-09-08
 
 Current extension state: implemented, source and mock-provider verification pass.

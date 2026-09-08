@@ -6,8 +6,6 @@ import 'central_email_api.dart';
 import 'session_client.dart';
 import 'engine_theme.dart';
 import 'source_workspace.dart';
-import 'support_repository.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   final client = createSessionClient();
@@ -28,7 +26,6 @@ class EmailEngineApp extends StatefulWidget {
 
 class _EmailEngineAppState extends State<EmailEngineApp> {
   bool _dark = false;
-  late final _support = CentralSupportRepository(widget.api);
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'ShipGlows · Email Engine',
@@ -36,187 +33,17 @@ class _EmailEngineAppState extends State<EmailEngineApp> {
     theme: EngineTheme.create(Brightness.light),
     darkTheme: EngineTheme.create(Brightness.dark),
     themeMode: _dark ? ThemeMode.dark : ThemeMode.light,
-    home: EmailCockpit(
-      initialSection: Uri.base.queryParameters['section'] == 'support'
-          ? EmailSection.support
-          : EmailSection.overview,
-      darkMode: _dark,
-      onToggleTheme: () => setState(() => _dark = !_dark),
-      builder: (context, section) => switch (section) {
-        EmailSection.sources => ReaderSourceWorkspace(api: widget.api),
-        EmailSection.support => SupportWorkspace(
-          repository: _support,
-          onConnect: (url) async {
-            if (url.scheme != 'https' ||
-                url.host != 'accounts.google.com' ||
-                url.userInfo.isNotEmpty) {
-              throw const EmailApiException('invalid_backend_receipt');
-            }
-            if (!await launchUrl(url, webOnlyWindowName: '_self')) {
-              throw const EmailApiException('service_unavailable');
-            }
-          },
-        ),
-        EmailSection.diffusion => _BusinessWorkspace(api: widget.api),
-        EmailSection.overview => const SizedBox.shrink(),
-      },
-    ),
-  );
-}
-
-class _BusinessWorkspace extends StatefulWidget {
-  const _BusinessWorkspace({required this.api});
-  final CentralEmailApi api;
-  @override
-  State<_BusinessWorkspace> createState() => _BusinessWorkspaceState();
-}
-
-class _BusinessWorkspaceState extends State<_BusinessWorkspace> {
-  List<EmailBusiness>? _businesses;
-  CentralCampaignRepository? _repository;
-  String? _error;
-  bool _loading = false;
-  int _reload = 0;
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await widget.api.get('context');
-      final businesses = (response['businesses'] as List)
-          .map((b) => EmailBusiness(b as Map<String, dynamic>))
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _businesses = businesses;
-        _repository = businesses.isEmpty
-            ? null
-            : CentralCampaignRepository(widget.api, businesses.first);
-      });
-    } catch (error) {
-      if (mounted) {
-        setState(
-          () => _error = error is EmailApiException
-              ? error.message
-              : 'Impossible de charger vos espaces. Réessayez.',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const style = NewsletterStudioStyle();
-    if (_loading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(
-            semanticsLabel: 'Chargement des espaces',
-          ),
-        ),
-      );
-    }
-    if (_error != null || _repository == null) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: style.panelPadding,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _error ??
-                      'Aucun espace newsletter n’est configuré pour votre compte.',
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: style.largeGap),
-                FilledButton.icon(
-                  onPressed: _load,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Réessayer'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    final repository = _repository!;
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: style.panelPadding,
-              child: Row(
-                children: [
-                  const Icon(Icons.mark_email_read_outlined),
-                  SizedBox(width: style.mediumGap),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: repository.business.id,
-                      decoration: const InputDecoration(
-                        labelText: 'Espace d’envoi',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _businesses!
-                          .map(
-                            (b) => DropdownMenuItem(
-                              value: b.id,
-                              child: Text(b.brand),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (id) {
-                        if (id != null) {
-                          setState(
-                            () => _repository = CentralCampaignRepository(
-                              widget.api,
-                              _businesses!.firstWhere((b) => b.id == id),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CampaignWorkspace(
-                key: ValueKey('${repository.business.id}:$_reload'),
-                repository: repository,
-                businessLabel: repository.business.brand,
-                canCreate: repository.business.audiences.isNotEmpty,
-                disabledReason: repository.business.disabledReason == null
-                    ? null
-                    : 'Envoi désactivé pour cet espace. Vous pouvez préparer vos brouillons.',
-                onOpenCampaign: (campaign) async {
-                  final session = await repository.open(campaign.id);
-                  if (!context.mounted) return;
-                  await Navigator.of(context).push<void>(
-                    MaterialPageRoute(
-                      builder: (_) => _CampaignEditor(session: session),
-                    ),
-                  );
-                  if (mounted) setState(() => _reload++);
-                },
-              ),
-            ),
-          ],
+    home: Builder(
+      builder: (context) => ReaderSourceWorkspace(
+        api: widget.api,
+        darkMode: _dark,
+        onToggleTheme: () => setState(() => _dark = !_dark),
+        onOpenCampaign: (session) => Navigator.of(context).push<void>(
+          MaterialPageRoute(builder: (_) => _CampaignEditor(session: session)),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _CampaignEditor extends StatefulWidget {
