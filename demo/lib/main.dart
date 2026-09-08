@@ -4,11 +4,13 @@ import 'package:source_sidebar_flutter/source_sidebar_flutter.dart';
 
 import 'preview_theme.dart';
 import 'campaign_demo_repository.dart';
+import 'support_demo_repository.dart';
 
 void main() => runApp(const SourceSidebarPreviewApp());
 
 class SourceSidebarPreviewApp extends StatefulWidget {
-  const SourceSidebarPreviewApp({super.key});
+  const SourceSidebarPreviewApp({super.key, this.showCockpit = true});
+  final bool showCockpit;
 
   @override
   State<SourceSidebarPreviewApp> createState() =>
@@ -17,21 +19,50 @@ class SourceSidebarPreviewApp extends StatefulWidget {
 
 class _SourceSidebarPreviewAppState extends State<SourceSidebarPreviewApp> {
   ThemeMode _themeMode = ThemeMode.light;
+  final _campaigns = CampaignDemoRepository();
+  final _support = DemoSupportRepository();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Sources — Flutter preview',
+      title: 'ShipGlows · Email Engine',
       theme: PreviewTheme.light(),
       darkTheme: PreviewTheme.dark(),
       themeMode: _themeMode,
-      home: SourceLibraryDemo(
-        darkMode: _themeMode == ThemeMode.dark,
-        onThemeChanged: (darkMode) => setState(
-          () => _themeMode = darkMode ? ThemeMode.dark : ThemeMode.light,
-        ),
-      ),
+      home: widget.showCockpit
+          ? EmailCockpit(
+              demonstration: true,
+              initialSection: Uri.base.queryParameters.containsKey('campaigns')
+                  ? EmailSection.diffusion
+                  : EmailSection.overview,
+              darkMode: _themeMode == ThemeMode.dark,
+              onToggleTheme: () => setState(
+                () => _themeMode = _themeMode == ThemeMode.dark
+                    ? ThemeMode.light
+                    : ThemeMode.dark,
+              ),
+              builder: (context, section) => switch (section) {
+                EmailSection.support => SupportWorkspace(repository: _support),
+                EmailSection.sources ||
+                EmailSection.diffusion => SourceLibraryDemo(
+                  key: ValueKey(section),
+                  campaignsOnly: section == EmailSection.diffusion,
+                  campaigns: _campaigns,
+                  darkMode: _themeMode == ThemeMode.dark,
+                  onThemeChanged: (dark) => setState(
+                    () => _themeMode = dark ? ThemeMode.dark : ThemeMode.light,
+                  ),
+                ),
+                EmailSection.overview => const SizedBox.shrink(),
+              },
+            )
+          : SourceLibraryDemo(
+              darkMode: _themeMode == ThemeMode.dark,
+              onThemeChanged: (darkMode) => setState(
+                () => _themeMode = darkMode ? ThemeMode.dark : ThemeMode.light,
+              ),
+            ),
     );
   }
 }
@@ -40,11 +71,15 @@ class SourceLibraryDemo extends StatefulWidget {
   const SourceLibraryDemo({
     required this.darkMode,
     required this.onThemeChanged,
+    this.campaignsOnly = false,
+    this.campaigns,
     super.key,
   });
 
   final bool darkMode;
   final ValueChanged<bool> onThemeChanged;
+  final bool campaignsOnly;
+  final CampaignDemoRepository? campaigns;
 
   @override
   State<SourceLibraryDemo> createState() => _SourceLibraryDemoState();
@@ -76,13 +111,13 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
   _DemoWorkspace _workspace = _DemoWorkspace.sources;
   NewsletterAudienceSummary? _audience;
   NewsletterTestReceipt? _testReceipt;
-  final _campaigns = CampaignDemoRepository();
+  late final _campaigns = widget.campaigns ?? CampaignDemoRepository();
   bool _fromCampaigns = false;
 
   @override
   void initState() {
     super.initState();
-    if (Uri.base.queryParameters.containsKey('campaigns')) {
+    if (widget.campaignsOnly) {
       _workspace = _DemoWorkspace.campaigns;
     }
     _items = _previewSources();
@@ -364,7 +399,6 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
             businessLabel: 'ShipGlows · démonstration',
             disabledReason:
                 'Données fictives · aucun email réel ne sera envoyé.',
-            onBack: () => setState(() => _workspace = _DemoWorkspace.sources),
             onOpenCampaign: (campaign) async {
               final sample = _previewNewsletter(_newsletterSources);
               setState(() {

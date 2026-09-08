@@ -1,5 +1,10 @@
 ## Unreleased
 
+- Add shared email cockpit navigation and an ordered Sources / Service client /
+  Diffusion dashboard, with lazy retained workspaces across responsive layouts.
+- Add provider-neutral support conversations, statuses, OAuth connection hook,
+  reply confirmation and session draft retention with uncertain-send safeguards.
+
 - Add a paginated campaign workspace with accessible status filters and creation.
 - Add editable titles, host-owned audiences, scheduling and button links.
 - Serialize draft saves, preserve edits on conflicts and save before review.

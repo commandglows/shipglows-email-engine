@@ -70,6 +70,8 @@ void main() {
     );
     await tester.pumpWidget(EmailEngineApp(api: api));
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Diffusion'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Initial'));
     await tester.pumpAndSettle();
     await tester.enterText(

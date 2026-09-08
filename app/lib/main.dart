@@ -5,6 +5,9 @@ import 'campaign_repository.dart';
 import 'central_email_api.dart';
 import 'session_client.dart';
 import 'engine_theme.dart';
+import 'source_workspace.dart';
+import 'support_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   final client = createSessionClient();
@@ -16,16 +19,48 @@ void main() {
 }
 
 /// The real operator application has no demo fallbacks or credential inputs.
-class EmailEngineApp extends StatelessWidget {
+class EmailEngineApp extends StatefulWidget {
   const EmailEngineApp({super.key, required this.api});
   final CentralEmailApi api;
   @override
+  State<EmailEngineApp> createState() => _EmailEngineAppState();
+}
+
+class _EmailEngineAppState extends State<EmailEngineApp> {
+  bool _dark = false;
+  late final _support = CentralSupportRepository(widget.api);
+  @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'ShipGlows · Newsletters',
+    title: 'ShipGlows · Email Engine',
     debugShowCheckedModeBanner: false,
     theme: EngineTheme.create(Brightness.light),
     darkTheme: EngineTheme.create(Brightness.dark),
-    home: _BusinessWorkspace(api: api),
+    themeMode: _dark ? ThemeMode.dark : ThemeMode.light,
+    home: EmailCockpit(
+      initialSection: Uri.base.queryParameters['section'] == 'support'
+          ? EmailSection.support
+          : EmailSection.overview,
+      darkMode: _dark,
+      onToggleTheme: () => setState(() => _dark = !_dark),
+      builder: (context, section) => switch (section) {
+        EmailSection.sources => ReaderSourceWorkspace(api: widget.api),
+        EmailSection.support => SupportWorkspace(
+          repository: _support,
+          onConnect: (url) async {
+            if (url.scheme != 'https' ||
+                url.host != 'accounts.google.com' ||
+                url.userInfo.isNotEmpty) {
+              throw const EmailApiException('invalid_backend_receipt');
+            }
+            if (!await launchUrl(url, webOnlyWindowName: '_self')) {
+              throw const EmailApiException('service_unavailable');
+            }
+          },
+        ),
+        EmailSection.diffusion => _BusinessWorkspace(api: widget.api),
+        EmailSection.overview => const SizedBox.shrink(),
+      },
+    ),
   );
 }
 

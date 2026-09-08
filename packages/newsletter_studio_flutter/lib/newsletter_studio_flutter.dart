@@ -1,5 +1,9 @@
 library;
 
+export 'src/email_cockpit.dart';
+export 'src/support_models.dart';
+export 'src/support_workspace.dart';
+
 export 'src/newsletter_studio.dart';
 export 'src/newsletter_studio_hooks.dart';
 export 'src/newsletter_studio_models.dart';

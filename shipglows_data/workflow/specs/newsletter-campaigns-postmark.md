@@ -123,6 +123,63 @@ No blocker to source implementation. Exact hosted configuration and live recipie
 - 2026-09-08: 101-sg-ready: ready for source implementation; authorization, immutable versions, recipient eligibility, UI host and proof boundaries explicit.
 
 ## Current Chantier Flow
+
+## Approved Cockpit Extension — 2026-09-08
+
+Current extension state: implemented, source and mock-provider verification pass.
+Auth/provider activation and actual reply routing remain unverified. Keep review
+branches while these external proofs are pending; do not merge/deploy implicitly.
+
+User explicitly approved the revised plan after clarifying provider ownership:
+Sources retains its name and Readwise Reader connection; Service client uses only
+the operator's own Gmail accounts through OAuth/Gmail API and preserves Mutant
+Mail reply routing; Diffusion retains Postmark campaigns. No provider migration.
+The shared cockpit becomes the default landing surface with the three sections in
+this order and direct campaign access. Support owns pending/waiting/resolved
+conversation status. Never infer a connection or success from synthetic data.
+Credentials, Google app configuration and actual mailbox consent are external
+activation prerequisites; no live reply is authorized by implementation approval.
+
+### Cockpit Execution Batches (ready)
+
+- Backend agent: isolated CommandGlows worktree only; new Gmail OAuth/support
+  modules, persistence schema additions, admin support endpoints and focused tests
+  and operations doc. Own schema.ts only for its additive table spread. Reuse
+  existing verified admin authority. No deployed configuration or live mail actions.
+- Support UI agent: engine new shared support widget/model files and focused tests
+  plus app/lib/support_repository.dart only. No main.dart, exports or pubspec edits.
+  Agree a compact API contract with backend first; UI remains provider neutral.
+- Integrator: shared cockpit shell/dashboard, app/demo main wiring, Sources adapter,
+  exports/dependencies, docs and combined verification. Sources integration stays
+  read-only with server-side token configuration. Review all agent diffs.
+
+Dependency order: agree API; write independent batches; integrate; focused auth,
+  routing, pagination, support reply and responsive tests; build and managed demo
+  visual verification. Preserve unrelated sidebar-style/runtime metadata edits.
+Proof must distinguish synthetic UI, mock-provider tests and actual OAuth/mailbox
+  access. No secrets or message bodies in logs, Git or documentation.
+
+### Cockpit Verification
+
+- Backend combined email/bridge checks: 185 tests pass; Astro check 0 errors and
+  0 warnings (one unrelated existing hint); Convex TypeScript passes.
+- Newsletter/cockpit/support package: 17 tests pass. App: 6 tests pass. Demo:
+  7 existing interaction tests pass; legacy source tests intentionally exercise
+  the isolated Sources harness. Integrated cockpit has separate retained-state
+  and mobile drawer tests plus manual browser journeys.
+- Dashboard and support inspected at 1440x1000 and 390x844. Responsive reparenting
+  now retains the support widget itself rather than recreating its session draft.
+- Reviewer corrections: same-origin support reads despite global suite CORS,
+  reopen status on new inbound (excluding SENT/DRAFT), bounded OAuth state purge
+  and rate bound. Unknown replies remain durably locked; exact relay domains are
+  configured server-side and never inferred from sender text.
+- Sources adapter reads only email documents, pages25 and fetches one selected
+  body as plain text; no Readwise mutations. Support initially reads Gmail inbox
+  on demand; no attachments, push synchronization, direct-address reply or token
+  revocation UI. Personal connection values and consent remain user/environment
+  prerequisites. No live login or email send was performed.
+- Topology: two non-overlapping write agents and one read-only security reviewer;
+  integration owner main. Source implementations integrated and reviewed.
 Source implementation and local verification complete; hosted activation and real
 delivery proof remain pending. Keep both `codex/newsletter-campaigns` branches for
 review, without merging the unactivated central-email work into production.

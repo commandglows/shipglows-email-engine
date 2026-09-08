@@ -10,6 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.6.0
+  url_launcher: ^6.3.2
+  source_sidebar_flutter:
+    path: ../packages/source_sidebar_flutter
   newsletter_studio_flutter:
     path: ../packages/newsletter_studio_flutter
 dev_dependencies:

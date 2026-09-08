@@ -71,3 +71,10 @@ spacing and radii. The authenticated web operator's host theme is `EngineTheme`
 in `app/lib/engine_theme.dart`, preserving the existing blue accent through
 Material ColorScheme for both brightness modes. The synthetic preview remains
 owned by `PreviewTheme`. These hosts share the package's layout authority.
+# Cockpit extension
+
+`EmailCockpitLayout` owns cockpit geometry and breakpoints. Shared cockpit and
+support colors derive from the host Material ColorScheme, with Material icons.
+Tests cover retained workspace state, drawer navigation, narrow dark support at
+large text, and explicit confirmation. Rendered proof includes the integrated
+dashboard and support conversation, separately from authenticated provider proof.

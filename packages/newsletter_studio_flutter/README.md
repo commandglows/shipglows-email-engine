@@ -120,3 +120,11 @@ The preview remains approximate and must not be described as email-client proof.
 Validation: `flutter analyze` and `flutter test` from this package. Widget coverage
 includes bounded paging, redacted failure recovery, narrow dark layouts with large
 text, disabled creation, serialized saves, keyboard navigation and send review.
+# Shared cockpit and service client
+
+`EmailCockpit` owns navigation and lazily retains visited workspaces. Its builder
+receives `EmailSection.sources`, `support` or `diffusion`. It keeps child state
+through responsive reparenting; it does not fetch or authenticate providers.
+`SupportWorkspace(repository:, onConnect:)` owns the conversation journey.
+Hosts implement `SupportRepository`; never pass OAuth tokens to presentation.
+Unknown reply outcomes block repeated sends; successful submission is not delivery.

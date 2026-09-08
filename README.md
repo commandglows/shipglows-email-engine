@@ -1,5 +1,13 @@
 # ShipGlows Email Engine
 
+The default dashboard is a shared cockpit: **Sources** (Readwise Reader),
+**Service client** (owned Gmail accounts with Mutant Mail relay routing), and
+**Diffusion** (Postmark campaigns). Navigation preserves each visited workspace
+and its session drafts, including when crossing desktop/mobile layouts.
+The demo at `/` uses fictional data; `?campaigns` remains a Diffusion shortcut.
+The authenticated `app` has server-backed adapters with explicit configuration
+states. No provider connection or successful delivery is implied by the preview.
+
 This public repository owns two native, provider-neutral Flutter presentation
 packages for host applications: `source_sidebar_flutter` for
 collecting and reading sources, and `newsletter_studio_flutter` for turning

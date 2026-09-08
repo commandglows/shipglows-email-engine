@@ -1,4 +1,20 @@
-# Newsletter operator web application
+# Email cockpit web application
+
+Sources reads email documents through the admin-only `sources` proxy. Configure
+`READWISE_READER_TOKEN` and comma-separated `READWISE_READER_OWNER_IDS` on the
+server; the latter contains exact authorized Clerk administrator IDs. The token
+never reaches Flutter. Lists page 25 documents, bodies load only on selection,
+and upstream HTML is displayed as bounded plain text. This first adapter is
+read-only; archive/move/import mutations are not exposed as fake successes.
+
+Service client uses `support/*`: personal Gmail OAuth, conversations, persistent
+pending/waiting/resolved status, explicit reply confirmation and durable unknown
+send locks. Configure the exact server contract in CommandGlows
+`shipglows_data/technical/gmail-support-api.md`. Replies require a verified relay
+domain and activation; direct Gmail messages currently remain read-only. Sources,
+support and campaigns keep separate credentials, provider ownership and states.
+Draft replies stay in widget session memory across section changes and responsive
+resizing; refreshing or closing the browser does not persist those drafts.
 
 This application calls `/api/admin/email` on its own origin using the existing
 CommandGlows Clerk session. It never accepts Postmark tokens or internal service

@@ -12,7 +12,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
     expect(find.text('Sources'), findsOneWidget);
     expect(find.text('Categories'), findsOneWidget);
     expect(find.text('Cybersecurity'), findsOneWidget);
@@ -33,7 +33,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
 
     expect(find.text('Sources'), findsOneWidget);
     expect(find.byTooltip('Source filters'), findsOneWidget);
@@ -46,7 +46,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
@@ -63,7 +63,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
     await tester.sendKeyEvent(LogicalKeyboardKey.bracketRight);
     await tester.pumpAndSettle();
     expect(find.textContaining('Switched to Research account'), findsOneWidget);
@@ -86,7 +86,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
     await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
@@ -118,7 +118,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
     await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
@@ -139,7 +139,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const SourceSidebarPreviewApp());
+    await tester.pumpWidget(const SourceSidebarPreviewApp(showCockpit: false));
     await tester.tap(find.byTooltip('Open Newsletter Studio'));
     await tester.pumpAndSettle();
 

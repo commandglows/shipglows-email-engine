@@ -71,6 +71,13 @@ An unmatched tracked code area is `needs review` until this map is extended.
 
 ## Campaign Integration Coverage
 
+Cockpit and support: `packages/newsletter_studio_flutter/lib/src/email_cockpit.dart`
+and `support_*.dart` map to the package README/CHANGELOG and design authority.
+`app/lib/source_workspace.dart` and `support_repository.dart` map to app/README
+and the CommandGlows Reader/support API contract. `demo/lib/support_demo_repository.dart`
+is explicitly synthetic and maps to the root README. No real mailbox content is
+an allowed demonstration fixture.
+
 Additional campaign scope: `app/**` maps to `app/README.md`, with the newsletter
 package README and CommandGlows campaign API contract as integration references.
 Validate with the app analyzer/tests and the CI web artifact. The local artifact
