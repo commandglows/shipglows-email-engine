@@ -58,10 +58,12 @@ void main() {
     await tester.pump();
 
     final row = tester.widget<InkWell>(
-      find.ancestor(
-        of: find.text('A useful source'),
-        matching: find.byType(InkWell),
-      ).first,
+      find
+          .ancestor(
+            of: find.text('A useful source'),
+            matching: find.byType(InkWell),
+          )
+          .first,
     );
     expect(row.focusNode?.hasPrimaryFocus, isTrue);
     expect(FocusManager.instance.primaryFocus, isNot(same(previousFocus)));
@@ -106,15 +108,15 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pumpAndSettle();
-    expect(find.text('Review'), findsWidgets);
+    expect(find.text('Vérifier'), findsWidgets);
     expect(sent, isFalse);
 
-    await tester.tap(find.text('Send now'));
+    await tester.tap(find.text('Envoyer maintenant'));
     await tester.pumpAndSettle();
-    expect(find.text('Send this newsletter now?'), findsOneWidget);
+    expect(find.text('Envoyer cette newsletter maintenant ?'), findsOneWidget);
     expect(sent, isFalse);
 
-    await tester.tap(find.text('Confirm send'));
+    await tester.tap(find.text('Confirmer l’envoi'));
     await tester.pumpAndSettle();
     expect(sent, isTrue);
   });
@@ -123,9 +125,7 @@ void main() {
     tester,
   ) async {
     useExpandedViewport(tester);
-    await tester.pumpWidget(
-      _Harness(draft: draft(), sources: [source]),
-    );
+    await tester.pumpWidget(_Harness(draft: draft(), sources: [source]));
     await tester.pump();
 
     double workspaceScale() {

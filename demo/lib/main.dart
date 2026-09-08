@@ -3,6 +3,7 @@ import 'package:newsletter_studio_flutter/newsletter_studio_flutter.dart';
 import 'package:source_sidebar_flutter/source_sidebar_flutter.dart';
 
 import 'preview_theme.dart';
+import 'campaign_demo_repository.dart';
 
 void main() => runApp(const SourceSidebarPreviewApp());
 
@@ -75,10 +76,15 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
   _DemoWorkspace _workspace = _DemoWorkspace.sources;
   NewsletterAudienceSummary? _audience;
   NewsletterTestReceipt? _testReceipt;
+  final _campaigns = CampaignDemoRepository();
+  bool _fromCampaigns = false;
 
   @override
   void initState() {
     super.initState();
+    if (Uri.base.queryParameters.containsKey('campaigns')) {
+      _workspace = _DemoWorkspace.campaigns;
+    }
     _items = _previewSources();
     _newsletterSources = _items
         .where((item) => item.location != 'archive')
@@ -227,6 +233,7 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
 
   Future<NewsletterDraft> _saveNewsletter(NewsletterDraft draft) async {
     await Future<void>.delayed(PreviewTheme.simulatedActionDelay);
+    _campaigns.save(draft);
     return draft.copyWith(
       revision: draft.revision + 1,
       saveState: NewsletterSaveState.saved,
@@ -351,6 +358,32 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
     return Scaffold(
       body: SafeArea(
         child: switch (_workspace) {
+          _DemoWorkspace.campaigns => CampaignWorkspace(
+            repository: _campaigns,
+            style: PreviewTheme.newsletterStyle(widget.darkMode),
+            businessLabel: 'ShipGlows · démonstration',
+            disabledReason:
+                'Données fictives · aucun email réel ne sera envoyé.',
+            onBack: () => setState(() => _workspace = _DemoWorkspace.sources),
+            onOpenCampaign: (campaign) async {
+              final sample = _previewNewsletter(_newsletterSources);
+              setState(() {
+                _newsletterDraft =
+                    _campaigns.drafts[campaign.id] ??
+                    NewsletterDraft(
+                      id: campaign.id,
+                      revision: campaign.revision,
+                      title: campaign.title,
+                      subject: campaign.subject,
+                      preheader: 'Le carnet de bord des projets ShipGlows.',
+                      blocks: sample.blocks,
+                      sources: sample.sources,
+                    );
+                _fromCampaigns = true;
+                _workspace = _DemoWorkspace.newsletter;
+              });
+            },
+          ),
           _DemoWorkspace.sources => SourceSidebar(
             title: 'Sources',
             items: _items,
@@ -359,6 +392,12 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
             style: PreviewTheme.sidebarStyle(widget.darkMode),
             categories: PreviewTheme.categories(widget.darkMode),
             topBarActions: [
+              IconButton(
+                tooltip: 'Campagnes',
+                onPressed: () =>
+                    setState(() => _workspace = _DemoWorkspace.campaigns),
+                icon: const Icon(Icons.campaign_outlined),
+              ),
               IconButton(
                 tooltip: 'Open Newsletter Studio',
                 onPressed: () {
@@ -444,7 +483,11 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
               _notify('Opened ${source.title} in the synthetic source tray.');
             },
             onBack: () {
-              setState(() => _workspace = _DemoWorkspace.sources);
+              setState(
+                () => _workspace = _fromCampaigns
+                    ? _DemoWorkspace.campaigns
+                    : _DemoWorkspace.sources,
+              );
             },
             topBarActions: [
               IconButton(
@@ -464,7 +507,7 @@ class _SourceLibraryDemoState extends State<SourceLibraryDemo> {
   }
 }
 
-enum _DemoWorkspace { sources, newsletter }
+enum _DemoWorkspace { sources, newsletter, campaigns }
 
 NewsletterSourceReference _newsletterSourceFromItem(SourceSidebarItem item) {
   return NewsletterSourceReference(

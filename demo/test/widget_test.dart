@@ -143,16 +143,13 @@ void main() {
     await tester.tap(find.byTooltip('Open Newsletter Studio'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Health Signals · Weekly draft'), findsOneWidget);
-    expect(find.text('Review and schedule'), findsOneWidget);
+    expect(find.text('Health Signals · Weekly draft'), findsWidgets);
+    expect(find.text('Vérifier et programmer'), findsOneWidget);
     expect(find.text('Sources'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Preview (Ctrl/Command+P)'));
+    await tester.tap(find.byTooltip('Aperçu (Ctrl/Commande+P)'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('does not prove received-client rendering'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Vérifiez le rendu final'), findsOneWidget);
   });
 }

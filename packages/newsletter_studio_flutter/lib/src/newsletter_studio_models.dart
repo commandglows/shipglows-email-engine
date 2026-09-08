@@ -4,7 +4,15 @@ enum NewsletterBlockType { heading, text, button, divider, source }
 
 enum NewsletterDraftStatus { draft, review, scheduled, sent }
 
-enum NewsletterSaveState { clean, dirty, saving, saved, conflict, offline, failed }
+enum NewsletterSaveState {
+  clean,
+  dirty,
+  saving,
+  saved,
+  conflict,
+  offline,
+  failed,
+}
 
 enum NewsletterIssueSeverity { blocker, warning }
 
@@ -24,6 +32,10 @@ enum NewsletterOperationKind {
 }
 
 enum NewsletterDeliveryState {
+  completed,
+  queued,
+  submitted,
+  unknown,
   draft,
   scheduled,
   sending,
@@ -114,10 +126,8 @@ class NewsletterDraft {
   final NewsletterDraftStatus status;
   final NewsletterSaveState saveState;
 
-  Set<String> get usedSourceIds => blocks
-      .map((block) => block.sourceId)
-      .whereType<String>()
-      .toSet();
+  Set<String> get usedSourceIds =>
+      blocks.map((block) => block.sourceId).whereType<String>().toSet();
 
   NewsletterDraft copyWith({
     int? revision,
@@ -232,10 +242,7 @@ class NewsletterPreview {
 
 @immutable
 class NewsletterSchedule {
-  const NewsletterSchedule({
-    required this.sendAt,
-    required this.timezoneLabel,
-  });
+  const NewsletterSchedule({required this.sendAt, required this.timezoneLabel});
 
   final DateTime sendAt;
   final String timezoneLabel;
@@ -304,4 +311,30 @@ class NewsletterStudioCapabilities {
   final bool canUnschedule;
   final bool canViewDeliveryStatus;
   final bool canViewAnalytics;
+}
+
+extension NewsletterBlockTypeLabel on NewsletterBlockType {
+  String get label => switch (this) {
+    NewsletterBlockType.heading => 'Titre',
+    NewsletterBlockType.text => 'Texte',
+    NewsletterBlockType.button => 'Bouton',
+    NewsletterBlockType.divider => 'Séparateur',
+    NewsletterBlockType.source => 'Source',
+  };
+}
+
+extension NewsletterDeliveryStateLabel on NewsletterDeliveryState {
+  String get label => switch (this) {
+    NewsletterDeliveryState.completed => 'Terminée',
+    NewsletterDeliveryState.draft => 'Brouillon',
+    NewsletterDeliveryState.queued => 'En attente',
+    NewsletterDeliveryState.submitted => 'Transmis au prestataire',
+    NewsletterDeliveryState.unknown => 'Résultat incertain',
+    NewsletterDeliveryState.scheduled => 'Programmé',
+    NewsletterDeliveryState.sending => 'Envoi en cours',
+    NewsletterDeliveryState.delivered => 'Livré',
+    NewsletterDeliveryState.partiallyDelivered => 'Livraison partielle',
+    NewsletterDeliveryState.failed => 'Échec',
+    NewsletterDeliveryState.cancelled => 'Annulé',
+  };
 }
